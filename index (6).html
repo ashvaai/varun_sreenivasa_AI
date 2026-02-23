@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecruitAI Screening Prototype</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin-bottom: 10px;
+      padding: 8px;
+      resize: vertical;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e9f7ef;
+      border-left: 5px solid #28a745;
+      border-radius: 4px;
+    }
+    .result h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RecruitAI Screening Prototype</h1>
+    <p>Paste your Job Description (JD) and Candidate Résumé below, then click <strong>Analyze</strong> to see the AI score and recommendation.</p>
+    <label for="jd">Job Description</label>
+    <textarea id="jd" placeholder="Paste the job description here..."></textarea>
+    <label for="resume">Candidate Résumé</label>
+    <textarea id="resume" placeholder="Paste the candidate résumé here..."></textarea>
+    <button onclick="analyze()">Analyze</button>
+    <div id="output" class="result" style="display: none;"></div>
+  </div>
+  <script>
+    // Helper function to tokenize text into lowercase alphanumeric words and remove stop words
+    function tokenize(text) {
+      const stopwords = new Set([
+        'the','and','a','to','of','in','for','on','with','is','that','by','or','as','an','be','are','from','at','this','use','using','we','you','your','it','our','his','her','they','them','their','i','me','my','mine'
+      ]);
+      return text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
+        .filter((token) => token && !stopwords.has(token));
+    }
+
+    // Compute cosine similarity using TF‑IDF weighting.  This provides more nuanced matching than
+    // simple term frequency.  The algorithm constructs term frequency maps for both documents,
+    // calculates document frequency across the two, computes TF‑IDF weights, then computes the
+    // cosine similarity between the TF‑IDF vectors.
+    function tfidfCosineSimilarity(tokensA, tokensB) {
+      // Term frequency for each document
+      const tfA = {};
+      const tfB = {};
+      tokensA.forEach((t) => (tfA[t] = (tfA[t] || 0) + 1));
+      tokensB.forEach((t) => (tfB[t] = (tfB[t] || 0) + 1));
+
+      // Document frequency across both documents
+      const docFreq = {};
+      const docSets = [new Set(tokensA), new Set(tokensB)];
+      docSets.forEach((set) => {
+        set.forEach((term) => {
+          docFreq[term] = (docFreq[term] || 0) + 1;
+        });
+      });
+      const docCount = 2;
+
+      // Build TF‑IDF vectors
+      const vectorA = {};
+      const vectorB = {};
+      // Use smoothed IDF: idf = log((N+1)/(df+1)) + 1.  This prevents idf from being zero when df == N,
+      // which otherwise causes overlapping tokens to contribute nothing to the similarity.
+      for (const term in tfA) {
+        const df = docFreq[term] || 0;
+        const idf = Math.log((docCount + 1) / (df + 1)) + 1;
+        vectorA[term] = tfA[term] * idf;
+      }
+      for (const term in tfB) {
+        const df = docFreq[term] || 0;
+        const idf = Math.log((docCount + 1) / (df + 1)) + 1;
+        vectorB[term] = tfB[term] * idf;
+      }
+
+      // Compute dot product
+      let dot = 0;
+      for (const term in vectorA) {
+        if (vectorB[term]) {
+          dot += vectorA[term] * vectorB[term];
+        }
+      }
+      // Compute magnitudes
+      const magA = Math.sqrt(Object.values(vectorA).reduce((sum, val) => sum + val * val, 0));
+      const magB = Math.sqrt(Object.values(vectorB).reduce((sum, val) => sum + val * val, 0));
+      if (magA === 0 || magB === 0) return 0;
+      return dot / (magA * magB);
+    }
+
+    function analyze() {
+      const jdText = document.getElementById('jd').value;
+      const resumeText = document.getElementById('resume').value;
+      if (!jdText.trim() || !resumeText.trim()) {
+        alert('Please enter both Job Description and Résumé');
+        return;
+      }
+      const jdTokens = tokenize(jdText);
+      const resumeTokens = tokenize(resumeText);
+      // Use TF‑IDF cosine similarity for more robust scoring
+      const similarity = tfidfCosineSimilarity(jdTokens, resumeTokens);
+      // Scale to 0–100; round to nearest integer
+      const score = Math.round(similarity * 100);
+      // Create a simple summary: first 40 words of résumé
+      const summaryWords = resumeTokens.slice(0, 40);
+      const summary = summaryWords.join(' ') + (resumeTokens.length > 40 ? '...' : '');
+      const recommendation = score >= 50 ? 'Interview' : 'Reject';
+      const outputDiv = document.getElementById('output');
+      outputDiv.style.display = 'block';
+      outputDiv.innerHTML = `<h3>Result</h3>
+        <p><strong>Score:</strong> ${score}/100</p>
+        <p><strong>Summary:</strong> ${summary}</p>
+        <p><strong>Recommended Action:</strong> ${recommendation}</p>`;
+    }
+  </script>
+</body>
+</html>
