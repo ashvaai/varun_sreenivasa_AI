@@ -1,0 +1,59 @@
+{
+  "problem_statement": "Solo recruiters in small and mid-sized companies are overwhelmed by hundreds of résumés per role. Manual screening leads to decision fatigue, missed talent and slow time‑to‑hire.",
+  "target_users": [
+    {
+      "name": "Sarah",
+      "role": "Talent Acquisition Manager",
+      "company_size": "50–200 employees",
+      "pain_points": [
+        "Receives 300+ résumés per week for engineering roles",
+        "Spends hours manually scanning for keyword matches",
+        "Loses qualified candidates due to delayed responses",
+        "Needs to communicate decisions promptly while maintaining a positive candidate experience"
+      ]
+    }
+  ],
+  "features": [
+    "Smart parsing of job descriptions and résumés using NLP and TF‑IDF/embeddings",
+    "Fit scoring on a 0–100 scale with threshold‑based recommendations (Interview/Reject)",
+    "Concise résumé summary highlighting relevant skills and experience",
+    "Agentic integration with n8n to trigger calendar invites and send templated emails",
+    "Admin dashboard for adjusting scoring thresholds and monitoring metrics"
+  ],
+  "user_flow": [
+    "Recruiter logs into RecruitAI and opens the screening interface.",
+    "She pastes or uploads a job description and a candidate résumé.",
+    "The system analyzes both texts, computes a similarity score and generates a short summary.",
+    "Based on the score, RecruitAI recommends ‘Interview’ or ‘Reject’.",
+    "If ‘Interview’ is chosen, the agent triggers an n8n workflow to schedule a meeting and send an invitation email.  If ‘Reject’, it sends a polite decline email.",
+    "All results are logged for analytics and continuous improvement."
+  ],
+  "core_modules": {
+    "frontend_ui": "A lightweight web interface (HTML/JS/CSS) where recruiters input JDs and résumés and view scores, summaries and recommendations.",
+    "scoring_engine": "A Python backend that tokenizes text, removes stopwords and computes TF‑IDF/cosine similarity.  Pluggable to support embeddings.",
+    "agentic_layer": "A set of n8n workflows that call the scoring API, branch based on thresholds and integrate with calendar and email services.",
+    "data_store": "A simple database or Google Sheet to log scores, decisions and metadata for reporting and model tuning."
+  },
+  "monetization": {
+    "model": "Subscription",
+    "tiers": [
+      {
+        "name": "Starter",
+        "price_per_month": 49,
+        "features": "Unlimited screening and up to 5 users"
+      },
+      {
+        "name": "Pro",
+        "price_per_month": 99,
+        "features": "Team dashboard, analytics, and n8n integration"
+      }
+    ],
+    "free_trial": "14‑day trial with limited features"
+  },
+  "case_study_example": {
+    "client": "AcmeTech (50‑person SaaS company)",
+    "problem": "Recruiting team spent 20 hours per week reviewing résumés for software engineer roles.",
+    "solution": "Implemented RecruitAI to automate screening and scheduling.",
+    "impact": "Reduced screening time by 60%, increased candidate response rate by 30%, and cut time‑to‑hire from 45 to 28 days."
+  }
+}
